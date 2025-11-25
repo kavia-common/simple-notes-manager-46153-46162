@@ -562,13 +562,40 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
             </label>
             <label>
               <div style={{ marginBottom: 6, fontWeight: 600 }}>Content <span className="text-muted">(markdown/plain text)</span></div>
-              <textarea
-                className="textarea"
-                rows={8}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your note here..."
-              />
+              <div
+                className="card"
+                style={{
+                  /* Create a scrolling editor area with a comfortable min and max height */
+                  maxHeight: 'calc(70vh - 180px)',
+                  minHeight: 160,
+                  overflowY: 'auto',
+                  borderRadius: 12,
+                  border: '1px solid var(--border)',
+                  background: 'linear-gradient(180deg, rgba(0,0,0,0.01), var(--color-surface))',
+                  boxShadow: 'var(--shadow-sm)',
+                  padding: 0
+                }}
+              >
+                <textarea
+                  className="textarea"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Write your note here..."
+                  style={{
+                    /* Make the textarea fill the scroll container */
+                    width: '100%',
+                    display: 'block',
+                    resize: 'vertical',
+                    minHeight: 160,
+                    maxHeight: 'calc(70vh - 200px)',
+                    border: 'none',
+                    borderRadius: 12,
+                    outline: 'none',
+                    background: 'transparent',
+                    scrollBehavior: 'smooth'
+                  }}
+                />
+              </div>
             </label>
             <label>
               <div style={{ marginBottom: 6, fontWeight: 600 }}>

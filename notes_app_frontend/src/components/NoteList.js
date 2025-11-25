@@ -44,9 +44,16 @@ const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete }, scrol
       style={{
         display: 'grid',
         gap: 12,
+        /* Occupy available viewport height minus header/toolbars area to keep layout stable */
         maxHeight: 'calc(100vh - 260px)',
         overflowY: 'auto',
         paddingRight: 2, // avoid scrollbar overlap
+        scrollBehavior: 'smooth',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '12px',
+        background: 'var(--color-surface)',
+        boxShadow: 'var(--shadow-sm)',
+        padding: 10
       }}
     >
       {notes.map((n) => (

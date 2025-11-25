@@ -50,6 +50,21 @@ html, body, #root {
   height: 100%;
 }
 
+/* Smooth scrolling for the app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar polish for scrollable panes (optional, respects theme) */
+.scroll-pane {
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
