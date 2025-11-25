@@ -9,7 +9,7 @@ import {
 } from '../lib/api';
 import NoteList from './NoteList';
 import NoteModal from './NoteModal';
-import { getAllTags } from '../lib/storage';
+import { getAllTags, exportAllData, importAllData } from '../lib/storage';
 import ScrollControls from './ScrollControls';
 import NotebooksBar from './NotebooksBar';
 
@@ -310,6 +310,67 @@ export default function NotesPage() {
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
             </select>
+          </div>
+          <div style={{ minWidth: 260 }}>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
+              Backup
+            </label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => {
+                  try {
+                    const data = exportAllData();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+                    a.download = `notes-backup-${ts}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    showToast('Backup exported.');
+                  } catch {
+                    showToast('Failed to export backup.', 'error');
+                  }
+                }}
+                aria-label="Export all notes as JSON"
+                title="Export all notes as JSON"
+              >
+                ⤓ Export Notes
+              </button>
+              <label className="btn secondary" title="Import notes from JSON" aria-label="Import notes from JSON" style={{ cursor: 'pointer' }}>
+                ⤒ Import Notes
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    try {
+                      const text = await file.text();
+                      // Ask user: merge or replace?
+                      let mode = 'merge';
+                      const choice = window.confirm('Import mode: OK = Merge (recommended), Cancel = Replace (overwrite local data).');
+                      mode = choice ? 'merge' : 'replace';
+                      const res = importAllData(text, { mode });
+                      // Refresh UI data for current notebook
+                      setSelectedNotebookIdState(res.selectedNotebookId || '');
+                      const data = await listNotes(res.selectedNotebookId || undefined);
+                      setNotes(Array.isArray(data) ? data : []);
+                      showToast('Backup imported.');
+                    } catch (err) {
+                      showToast(err?.message || 'Failed to import backup.', 'error');
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
           </div>
           <div style={{ flex: '0 0 auto' }}>
             <label style={{ display: 'block', marginBottom: 6, visibility: 'hidden' }}>Action</label>
