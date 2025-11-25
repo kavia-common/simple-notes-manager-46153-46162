@@ -1,6 +1,6 @@
 # Simple Notes Manager (React)
 
-A modern, responsive notes app with create, edit, delete, search, sort, and local persistence. Styled with the Ocean Professional theme.
+A modern, responsive notes app with create, edit, delete, search, sort, attachments, and local persistence. Styled with the Ocean Professional theme.
 
 ## Features
 
@@ -12,6 +12,14 @@ A modern, responsive notes app with create, edit, delete, search, sort, and loca
 - Local persistence via `localStorage` (key: `notes_app_data_v1`)
 - Optional backend integration (graceful fallback to localStorage)
 - Responsive layout, keyboard accessible, ARIA labels, focus management
+- Image attachments for notes:
+  - Add via file picker or drag-and-drop
+  - Supports PNG, JPG/JPEG, WEBP, GIF
+  - Up to 10 images per note
+  - 5MB per file pre-compression limit; large images are optionally resized client-side to ~1600px long edge at quality ~0.85
+  - Thumbnails grid with remove and simple up/down reordering
+  - Thumbnails ribbon shows up to 3 images in the note list
+  - Fully client-side, persisted in localStorage or passed to backend when configured
 
 ## Environment Variables
 
@@ -40,7 +48,7 @@ Open http://localhost:3000 in your browser.
 - `src/components/NotesPage.js` – main page, manages state, search, sort, and modal
 - `src/components/NoteList.js` – renders the notes list
 - `src/components/NoteListItem.js` – individual note view with actions
-- `src/components/NoteModal.js` – accessible modal for create/edit with validation
+- `src/components/NoteModal.js` – accessible modal for create/edit with validation and attachments
 - `src/lib/storage.js` – localStorage helpers
 - `src/lib/api.js` – optional API client with graceful fallback to localStorage
 - `src/index.css` – global theme and components styles (Ocean Professional)
@@ -57,6 +65,7 @@ Ocean Professional:
 
 - The app fully functions without any backend.
 - If you add a backend later, set `REACT_APP_API_BASE` or `REACT_APP_BACKEND_URL`, and the app will attempt to use it but still fall back if it fails.
+- Backward compatibility: existing notes (without attachments) continue to work. The new `images` array is defaulted to `[]` on load.
 
 ## License
 

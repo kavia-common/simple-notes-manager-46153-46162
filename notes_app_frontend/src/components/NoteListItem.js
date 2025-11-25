@@ -5,7 +5,7 @@ import React from 'react';
  * Accessible buttons with ARIA labels.
  *
  * Props:
- * - note: { id, title, content, createdAt, updatedAt, tags? }
+ * - note: { id, title, content, createdAt, updatedAt, tags?, images? }
  * - onEdit: function(note) -> open edit modal with the given note
  * - onDelete: function(note) -> delete flow with confirmation
  */
@@ -20,6 +20,7 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
 
   const updatedLabel = same ? '—' : updated.toLocaleString();
   const tags = Array.isArray(note.tags) ? note.tags : [];
+  const images = Array.isArray(note.images) ? note.images : [];
 
   return (
     <div className="note-item card" role="article" aria-labelledby={`note-${note.id}-title`}>
@@ -72,6 +73,22 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
             >
               {preview}
             </p>
+
+            {/* Attachments thumbnails ribbon */}
+            {images.length > 0 ? (
+              <div className="attachments-ribbon" style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+                {images.slice(0, 3).map(img => (
+                  <img
+                    key={img.id}
+                    src={img.dataUrl}
+                    alt=""
+                    style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
+                  />
+                ))}
+                {images.length > 3 ? <span className="helper">+{images.length - 3} more</span> : null}
+              </div>
+            ) : null}
+
             {note.drawing ? (
               <div style={{ marginTop: 8 }}>
                 <button

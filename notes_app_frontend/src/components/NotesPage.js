@@ -115,15 +115,21 @@ export default function NotesPage() {
   };
 
   const onSave = async (payload) => {
+    // Ensure images field exists for backward compatibility
+    const normalizedPayload = {
+      ...payload,
+      images: Array.isArray(payload.images) ? payload.images : [],
+    };
+
     if (editing) {
       const now = new Date().toISOString();
       const optimistic = notes.map(n =>
-        n.id === editing.id ? { ...n, ...payload, updatedAt: now } : n
+        n.id === editing.id ? { ...n, ...normalizedPayload, updatedAt: now } : n
       );
       setNotes(optimistic);
       setModalOpen(false);
       try {
-        const updated = await updateNote(editing.id, payload);
+        const updated = await updateNote(editing.id, normalizedPayload);
         setNotes(prev =>
           prev.map(n => (n.id === editing.id ? (updated || n) : n))
         );
@@ -136,7 +142,7 @@ export default function NotesPage() {
     } else {
       setModalOpen(false);
       try {
-        const created = await createNote(payload);
+        const created = await createNote(normalizedPayload);
         setNotes(prev => applySort([created, ...prev], sort));
         showToast('Note created.');
       } catch {
