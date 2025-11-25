@@ -10,7 +10,7 @@ import React from 'react';
  * - onDelete: function(note) -> delete flow with confirmation
  */
 // PUBLIC_INTERFACE
-export default function NoteListItem({ note, onEdit, onDelete, onTogglePin }) {
+export default function NoteListItem({ note, onEdit, onDelete, onTogglePin, onUnarchive }) {
   const created = new Date(note.createdAt);
   const updated = new Date(note.updatedAt);
   const same = note.createdAt === note.updatedAt;
@@ -24,6 +24,7 @@ export default function NoteListItem({ note, onEdit, onDelete, onTogglePin }) {
   const audio = Array.isArray(note.audio) ? note.audio : [];
 
   const isPinned = note.pinned === true;
+  const isArchived = note.archived === true;
 
   return (
     <div
@@ -32,7 +33,8 @@ export default function NoteListItem({ note, onEdit, onDelete, onTogglePin }) {
       aria-labelledby={`note-${note.id}-title`}
       style={{
         borderLeft: isPinned ? '4px solid var(--color-accent)' : undefined,
-        background: isPinned ? 'linear-gradient(180deg, rgba(245,158,11,0.08), var(--color-surface))' : undefined
+        background: isPinned ? 'linear-gradient(180deg, rgba(245,158,11,0.08), var(--color-surface))' : undefined,
+        opacity: isArchived ? 0.92 : 1
       }}
     >
       <div className="note-item-body" style={{ padding: 14 }}>
@@ -70,7 +72,7 @@ export default function NoteListItem({ note, onEdit, onDelete, onTogglePin }) {
                 </span>
               </div>
             ) : null}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <h3
                 id={`note-${note.id}-title`}
                 style={{
@@ -90,6 +92,16 @@ export default function NoteListItem({ note, onEdit, onDelete, onTogglePin }) {
                   style={{ borderColor: 'rgba(245,158,11,0.45)', background: 'rgba(245,158,11,0.15)' }}
                 >
                   📌
+                </span>
+              ) : null}
+              {isArchived ? (
+                <span
+                  className="chip chip-small"
+                  aria-label="Archived"
+                  title="Archived"
+                  style={{ borderColor: 'rgba(17,24,39,0.25)', background: 'rgba(17,24,39,0.08)' }}
+                >
+                  🗄 Archived
                 </span>
               ) : null}
             </div>
@@ -178,14 +190,35 @@ export default function NoteListItem({ note, onEdit, onDelete, onTogglePin }) {
             >
               ✎ Edit
             </button>
-            <button
-              className="btn danger"
-              onClick={() => onDelete(note)}
-              aria-label={`Delete note ${title}`}
-              title="Delete"
-            >
-              🗑 Delete
-            </button>
+            {isArchived ? (
+              <>
+                <button
+                  className="btn secondary"
+                  onClick={() => onUnarchive && onUnarchive(note)}
+                  aria-label={`Unarchive note ${title}`}
+                  title="Unarchive"
+                >
+                  ⤴ Unarchive
+                </button>
+                <button
+                  className="btn danger"
+                  onClick={() => onDelete(note)}
+                  aria-label={`Delete permanently ${title}`}
+                  title="Delete permanently"
+                >
+                  🗑 Delete Permanently
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn danger"
+                onClick={() => onDelete(note)}
+                aria-label={`Archive note ${title}`}
+                title="Archive"
+              >
+                🗄 Archive
+              </button>
+            )}
           </div>
         </div>
       </div>

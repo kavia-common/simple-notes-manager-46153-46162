@@ -21,6 +21,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [error, setError] = useState('');
   const [sketchOpen, setSketchOpen] = useState(false);
   const [drawing, setDrawing] = useState(initial?.drawing || null);
+  const [archived, setArchived] = useState(Boolean(initial?.archived) === true);
 
   // Attachments state
   const [images, setImages] = useState(Array.isArray(initial?.images) ? initial.images : []);
@@ -59,6 +60,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
     setError('');
     setDrawing(initial?.drawing || null);
     setPinned(Boolean(initial?.pinned) === true);
+    setArchived(Boolean(initial?.archived) === true);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setAudioClips(Array.isArray(initial?.audio) ? initial.audio : []);
     // auto-open sections if content exists
@@ -514,6 +516,8 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
       images: Array.isArray(images) ? images : [],
       audio: Array.isArray(audioClips) ? audioClips : [],
       pinned: Boolean(pinned),
+      archived: Boolean(archived),
+      archivedAt: archived ? (initial?.archivedAt || new Date().toISOString()) : null,
     });
   };
 
@@ -549,6 +553,21 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
             >
               {pinned ? '📌 Pinned' : '📍 Pin'}
             </button>
+            {initial ? (
+              <button
+                className="btn secondary"
+                onClick={() => setArchived(a => !a)}
+                aria-pressed={archived}
+                aria-label={archived ? 'Unarchive this note' : 'Archive this note'}
+                title={archived ? 'Unarchive' : 'Archive'}
+                style={{
+                  borderColor: archived ? 'rgba(17,24,39,0.35)' : undefined,
+                  background: archived ? 'rgba(17,24,39,0.10)' : undefined
+                }}
+              >
+                {archived ? '⤴ Unarchive' : '🗄 Archive'}
+              </button>
+            ) : null}
             <button
               className="btn secondary"
               onClick={onCancel}

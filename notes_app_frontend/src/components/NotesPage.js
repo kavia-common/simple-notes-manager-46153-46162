@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   listNotes,
+  listArchivedNotes,
   createNote,
   updateNote,
-  deleteNote,
+  archiveNote,
+  unarchiveNote,
+  deleteNotePermanently,
   getSelectedNotebookId,
   setSelectedNotebookId,
 } from '../lib/api';
@@ -52,6 +55,7 @@ function applySort(items, mode) {
 export default function NotesPage() {
   const [notes, setNotes] = useState([]);
   const [selectedNotebookId, setSelectedNotebookIdState] = useState(getSelectedNotebookId() || '');
+  const [showArchived, setShowArchived] = useState(false);
   const [query, setQuery] = useState(''); // preserved in component state
   const [sort, setSort] = useState('updatedDesc');
   const [isModalOpen, setModalOpen] = useState(false);
@@ -72,7 +76,9 @@ export default function NotesPage() {
     (async () => {
       setLoading(true);
       try {
-        const data = await listNotes(selectedNotebookId || undefined);
+        const data = showArchived
+          ? await listArchivedNotes(selectedNotebookId || undefined)
+          : await listNotes(selectedNotebookId || undefined);
         if (mounted) setNotes(Array.isArray(data) ? data : []);
       } catch (e) {
         showToast('Failed to load notes. Using local data if available.', 'error');
@@ -81,7 +87,7 @@ export default function NotesPage() {
       }
     })();
     return () => { mounted = false };
-  }, [selectedNotebookId]);
+  }, [selectedNotebookId, showArchived]);
 
   // Debounce query changes (250–300ms)
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -162,16 +168,33 @@ export default function NotesPage() {
   }, [shouldScrollAfterCreate, listRef]);
 
   const onDelete = async (note) => {
-    const ok = window.confirm(`Delete note "${note.title || 'Untitled'}"?`);
-    if (!ok) return;
-    const prev = notes;
-    setNotes(prev => prev.filter(n => n.id !== note.id));
-    try {
-      await deleteNote(note.id);
-      showToast('Note deleted.');
-    } catch {
-      showToast('Failed to delete note. Restoring.', 'error');
-      setNotes(prev);
+    if (!showArchived) {
+      // Active view -> Archive instead of delete
+      const ok = window.confirm(`Archive note "${note.title || 'Untitled'}"? You can find it later in Archived.`);
+      if (!ok) return;
+      const prev = notes;
+      // optimistic remove from active list
+      setNotes(prev => prev.filter(n => n.id !== note.id));
+      try {
+        await archiveNote(note.id);
+        showToast('Note archived.');
+      } catch {
+        showToast('Failed to archive note. Restoring.', 'error');
+        setNotes(prev);
+      }
+    } else {
+      // Archived view -> Permanent delete
+      const ok = window.confirm(`Delete permanently "${note.title || 'Untitled'}"? This cannot be undone.`);
+      if (!ok) return;
+      const prev = notes;
+      setNotes(prev => prev.filter(n => n.id !== note.id));
+      try {
+        await deleteNotePermanently(note.id);
+        showToast('Note permanently deleted.');
+      } catch {
+        showToast('Failed to delete note. Restoring.', 'error');
+        setNotes(prev);
+      }
     }
   };
 
@@ -254,7 +277,7 @@ export default function NotesPage() {
                 Search
               </label>
               <div className="helper" aria-hidden="true" style={{ marginBottom: 6 }}>
-                View: List
+                View: {showArchived ? 'Archived' : 'Active'}
               </div>
             </div>
             <div className="input-with-icon">
@@ -337,6 +360,33 @@ export default function NotesPage() {
                 <option key={s.id} value={s.id}>{s.label}</option>
               ))}
             </select>
+          </div>
+          <div style={{ minWidth: 220 }}>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
+              View
+            </label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className={`btn secondary ${!showArchived ? 'chip-active' : ''}`}
+                onClick={() => setShowArchived(false)}
+                aria-pressed={!showArchived}
+                aria-label="Show active notes"
+                title="Active notes"
+              >
+                📒 Active
+              </button>
+              <button
+                type="button"
+                className={`btn secondary ${showArchived ? 'chip-active' : ''}`}
+                onClick={() => setShowArchived(true)}
+                aria-pressed={showArchived}
+                aria-label="Show archived notes"
+                title="Archived notes"
+              >
+                🗄 Archived
+              </button>
+            </div>
           </div>
           <div style={{ minWidth: 260 }}>
             <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
@@ -427,9 +477,27 @@ export default function NotesPage() {
           </div>
         </div>
       ) : isEmptyDataset ? (
-        <NoteList notes={[]} onEdit={openEdit} onDelete={onDelete} />
+        <NoteList notes={[]} onEdit={openEdit} onDelete={onDelete} onTogglePin={togglePin} />
       ) : (
-        <NoteList ref={listRef} notes={filtered} onEdit={openEdit} onDelete={onDelete} onTogglePin={togglePin} />
+        <NoteList
+          ref={listRef}
+          notes={filtered}
+          onEdit={openEdit}
+          onDelete={onDelete}
+          onTogglePin={togglePin}
+          onUnarchive={async (note) => {
+            const prev = notes;
+            // optimistic remove from archived list
+            setNotes(prev => prev.filter(n => n.id !== note.id));
+            try {
+              await unarchiveNote(note.id);
+              showToast('Note unarchived.');
+            } catch {
+              showToast('Failed to unarchive note. Restoring.', 'error');
+              setNotes(prev);
+            }
+          }}
+        />
       )}
 
       <ScrollControls targetRef={listRef} />

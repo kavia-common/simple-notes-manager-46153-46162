@@ -16,7 +16,7 @@ import NoteListItem from './NoteListItem';
  * - The forwarded ref is attached to the scrollable list container div to allow external scroll controls.
  */
 // PUBLIC_INTERFACE
-const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete, onTogglePin }, scrollRef) {
+const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete, onTogglePin, onUnarchive }, scrollRef) {
   if (!notes || notes.length === 0) {
     return (
       <div
@@ -28,9 +28,9 @@ const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete, onToggl
           textAlign: 'center',
         }}
       >
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>No notes yet</div>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>No notes here</div>
         <p style={{ margin: 0 }} className="text-muted">
-          Click “New Note” to create your first note. Your notes will appear here in a clean, scrollable list.
+          This view has no notes. Try switching views or creating a new note.
         </p>
       </div>
     );
@@ -58,7 +58,13 @@ const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete, onToggl
     >
       {notes.map((n) => (
         <div role="listitem" key={n.id} style={{ minWidth: 0 }}>
-          <NoteListItem note={n} onEdit={onEdit} onDelete={onDelete} onTogglePin={onTogglePin} />
+          <NoteListItem
+            note={n}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onTogglePin={onTogglePin}
+            onUnarchive={onUnarchive}
+          />
         </div>
       ))}
     </div>
