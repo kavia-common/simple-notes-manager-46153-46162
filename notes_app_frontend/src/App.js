@@ -1,47 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
+import React from 'react';
 import './App.css';
+import './index.css';
+import NotesPage from './components/NotesPage';
 
 // PUBLIC_INTERFACE
 function App() {
-  const [theme, setTheme] = useState('light');
-
-  // Effect to apply theme to document element
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
-  // PUBLIC_INTERFACE
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
-
+  /** Main app layout with Ocean Professional header and NotesPage */
   return (
-    <div className="App">
-      <header className="App-header">
-        <button 
-          className="theme-toggle" 
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-        </button>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+    <div className="app-root">
+      <header className="app-header" role="banner" aria-label="Application header">
+        <div className="container header-inner">
+          <div className="brand">
+            <span className="brand-badge" aria-hidden="true">✦</span>
+            <h1 className="brand-title">Simple Notes Manager</h1>
+          </div>
+          <div className="header-actions">
+            <a
+              className="link-docs"
+              href="https://react.dev"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open React documentation in new tab"
+            >
+              React Docs
+            </a>
+          </div>
+        </div>
       </header>
+      <main className="app-main" role="main">
+        <div className="container">
+          <NotesPage />
+        </div>
+      </main>
+      <footer className="app-footer" role="contentinfo">
+        <div className="container footer-inner">
+          <span>Ocean Professional theme</span>
+        </div>
+      </footer>
     </div>
   );
 }
