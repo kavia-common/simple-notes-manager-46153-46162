@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * Renders a single note item with edit and delete actions.
+ * Renders a single note item with quick actions and metadata.
  * Accessible buttons with ARIA labels.
  *
  * Props:
@@ -15,40 +15,96 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
   const updated = new Date(note.updatedAt);
   const same = note.createdAt === note.updatedAt;
 
+  const title = (note.title || '(Untitled)').trim();
+  const preview = truncate(note.content || '', 140);
+
+  const updatedLabel = same ? '—' : updated.toLocaleString();
+
   return (
     <div className="note-item card" role="article" aria-labelledby={`note-${note.id}-title`}>
       <div className="note-item-body" style={{ padding: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            gap: 12,
+            alignItems: 'start',
+          }}
+        >
           <div style={{ minWidth: 0 }}>
-            <h3 id={`note-${note.id}-title`} style={{ margin: '0 0 6px 0', fontSize: 16 }}>
-              {note.title || '(Untitled)'}
+            <div
+              className="text-muted"
+              style={{
+                fontSize: 12,
+                marginBottom: 6,
+                display: 'flex',
+                gap: 10,
+                flexWrap: 'wrap',
+              }}
+            >
+              <span>
+                <strong>Updated:</strong> <span title={updated.toISOString()}>{updatedLabel}</span>
+              </span>
+              <span>
+                <strong>Created:</strong>{' '}
+                <span title={created.toISOString()}>{created.toLocaleString()}</span>
+              </span>
+            </div>
+            <h3
+              id={`note-${note.id}-title`}
+              style={{
+                margin: '0 0 6px 0',
+                fontSize: 16,
+                lineHeight: 1.35,
+                wordBreak: 'break-word',
+              }}
+            >
+              {title}
             </h3>
-            <p className="text-muted" style={{ margin: 0, fontSize: 13 }}>
-              {truncate(note.content || '', 120)}
+            <p
+              className="text-muted"
+              style={{
+                margin: 0,
+                fontSize: 13,
+                wordBreak: 'break-word',
+              }}
+            >
+              {preview}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              flexShrink: 0,
+              alignItems: 'center',
+            }}
+          >
+            <button
+              className="btn secondary"
+              onClick={() => alert('Viewing note:\n\n' + (note.content || '').slice(0, 100) + (note.content && note.content.length > 100 ? '…' : ''))}
+              aria-label={`View note ${title}`}
+              title="View"
+            >
+              👁 View
+            </button>
             <button
               className="btn secondary"
               onClick={() => onEdit(note)}
-              aria-label={`Edit note ${note.title || 'untitled'}`}
+              aria-label={`Edit note ${title}`}
+              title="Edit"
             >
               ✎ Edit
             </button>
             <button
               className="btn danger"
               onClick={() => onDelete(note)}
-              aria-label={`Delete note ${note.title || 'untitled'}`}
+              aria-label={`Delete note ${title}`}
+              title="Delete"
             >
               🗑 Delete
             </button>
           </div>
-        </div>
-        <div style={{ marginTop: 8, display: 'flex', gap: 12, fontSize: 12 }} className="text-muted">
-          <span title={created.toISOString()}>Created: {created.toLocaleString()}</span>
-          <span title={updated.toISOString()}>
-            {same ? 'Updated: —' : `Updated: ${updated.toLocaleString()}`}
-          </span>
         </div>
       </div>
     </div>

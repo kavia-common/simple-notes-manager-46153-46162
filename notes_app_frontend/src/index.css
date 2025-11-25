@@ -141,6 +141,17 @@ a:hover {
   box-shadow: var(--shadow-md);
 }
 
+/* Note item subtle hover and layout polish */
+.note-item {
+  transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.note-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(37,99,235,0.18);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

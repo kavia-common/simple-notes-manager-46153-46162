@@ -28,6 +28,7 @@ function applySort(items, mode) {
 /**
  * NotesPage
  * Main page managing notes state, search, sort, and the create/edit modal.
+ * The primary view is the List view for easy browsing.
  * Includes optimistic updates and graceful fallback to localStorage.
  */
 // PUBLIC_INTERFACE
@@ -67,6 +68,7 @@ export default function NotesPage() {
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
+  // Search integrates with list view
   const filtered = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
     const source = q
@@ -141,15 +143,21 @@ export default function NotesPage() {
   const clearQuery = () => setQuery('');
 
   const hasNoResults = !loading && filtered.length === 0 && (debouncedQuery.trim().length > 0);
+  const isEmptyDataset = !loading && notes.length === 0;
 
   return (
     <section aria-label="Notes manager">
       <div className="card" style={{ padding: 14, marginBottom: 14 }}>
         <div className="row" style={{ alignItems: 'center' }}>
           <div style={{ flex: 2, minWidth: 260 }}>
-            <label htmlFor="search" style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
-              Search
-            </label>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <label htmlFor="search" style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
+                Search
+              </label>
+              <div className="helper" aria-hidden="true" style={{ marginBottom: 6 }}>
+                View: List
+              </div>
+            </div>
             <div className="input-with-icon">
               <span aria-hidden="true" className="input-leading-icon">🔎</span>
               <input
@@ -221,6 +229,8 @@ export default function NotesPage() {
             No notes match “{debouncedQuery}”. Try a different keyword.
           </div>
         </div>
+      ) : isEmptyDataset ? (
+        <NoteList notes={[]} onEdit={openEdit} onDelete={onDelete} />
       ) : (
         <NoteList notes={filtered} onEdit={openEdit} onDelete={onDelete} />
       )}
