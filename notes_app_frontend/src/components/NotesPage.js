@@ -3,6 +3,7 @@ import { listNotes, createNote, updateNote, deleteNote } from '../lib/api';
 import NoteList from './NoteList';
 import NoteModal from './NoteModal';
 import { getAllTags } from '../lib/storage';
+import ScrollControls from './ScrollControls';
 
 const SORTS = [
   { id: 'updatedDesc', label: 'Updated (desc)' },
@@ -44,6 +45,7 @@ export default function NotesPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
+  const listRef = useRef(null);
 
   // Load notes initially
   useEffect(() => {
@@ -295,8 +297,10 @@ export default function NotesPage() {
       ) : isEmptyDataset ? (
         <NoteList notes={[]} onEdit={openEdit} onDelete={onDelete} />
       ) : (
-        <NoteList notes={filtered} onEdit={openEdit} onDelete={onDelete} />
+        <NoteList ref={listRef} notes={filtered} onEdit={openEdit} onDelete={onDelete} />
       )}
+
+      <ScrollControls targetRef={listRef} />
 
       <NoteModal
         isOpen={isModalOpen}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import NoteListItem from './NoteListItem';
 
 /**
@@ -6,9 +6,17 @@ import NoteListItem from './NoteListItem';
  * Renders a responsive, scrollable list of notes with per-item edit/delete actions.
  * - Polished empty state
  * - Consistent spacing and Ocean Professional styling
+ *
+ * Props:
+ * - notes: array of note objects
+ * - onEdit: function(note)
+ * - onDelete: function(note)
+ *
+ * Ref:
+ * - The forwarded ref is attached to the scrollable list container div to allow external scroll controls.
  */
 // PUBLIC_INTERFACE
-export default function NoteList({ notes, onEdit, onDelete }) {
+const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete }, scrollRef) {
   if (!notes || notes.length === 0) {
     return (
       <div
@@ -30,6 +38,7 @@ export default function NoteList({ notes, onEdit, onDelete }) {
 
   return (
     <div
+      ref={scrollRef}
       role="list"
       aria-label="Notes list"
       style={{
@@ -47,4 +56,6 @@ export default function NoteList({ notes, onEdit, onDelete }) {
       ))}
     </div>
   );
-}
+});
+
+export default NoteList;

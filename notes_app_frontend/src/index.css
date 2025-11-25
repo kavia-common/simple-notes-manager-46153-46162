@@ -227,6 +227,17 @@ a:hover {
   box-shadow: 0 6px 16px rgba(239,68,68,0.25);
 }
 
+/* Floating scroll controls */
+.scroll-controls .scroll-btn {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border);
+  backdrop-filter: saturate(120%) blur(4px);
+}
+
+:root[data-theme="dark"] .scroll-controls .scroll-btn {
+  border-color: rgba(255,255,255,0.18);
+}
+
 .input, .select, .textarea {
   width: 100%;
   padding: 10px 12px;
