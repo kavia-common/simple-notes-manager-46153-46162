@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import DrawingCanvas from './DrawingCanvas';
 
 /**
  * Accessible modal for creating and editing notes.
@@ -9,7 +10,7 @@ import React, { useEffect, useRef, useState } from 'react';
  * - isOpen: boolean to control modal visibility
  * - initial: optional note object to prefill when editing; if falsy, modal acts in "create" mode
  * - onCancel: function called when closing without saving
- * - onSave: function called with payload {title, content, tags} when saving
+ * - onSave: function called with payload {title, content, tags, drawing?} when saving
  */
 export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [title, setTitle] = useState(initial?.title || '');
@@ -17,6 +18,9 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
+  const [sketchOpen, setSketchOpen] = useState(false);
+  const [drawing, setDrawing] = useState(initial?.drawing || null);
+  const drawingRef = useRef(null);
   const titleRef = useRef(null);
   const closeRef = useRef(null);
   const previouslyFocused = useRef(null);
@@ -29,6 +33,9 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
     setTags(Array.isArray(initial?.tags) ? initial.tags : []);
     setTagInput('');
     setError('');
+    setDrawing(initial?.drawing || null);
+    // auto-open sketch if editing one with drawing
+    setSketchOpen(!!(initial && initial.drawing));
   }, [initial, isOpen]);
 
   // Focus handling
@@ -89,10 +96,16 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
       addTagToken(tagInput);
       setTagInput('');
     }
+    // if a canvas ref exists, retrieve current image; else use drawing state
+    let dataUrl = drawing;
+    if (drawingRef.current && typeof drawingRef.current.getDataUrl === 'function') {
+      dataUrl = drawingRef.current.getDataUrl();
+    }
     onSave({
       title: title.trim(),
       content,
       tags,
+      drawing: dataUrl || null,
     });
   };
 
@@ -189,6 +202,40 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
               </div>
             </label>
             <div className="helper">Tip: Use markdown syntax to structure your content.</div>
+            <div className="card" style={{ padding: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => setSketchOpen(v => !v)}
+                  aria-expanded={sketchOpen}
+                  aria-controls="sketch-section"
+                  title={sketchOpen ? 'Hide sketch' : 'Show sketch'}
+                >
+                  {sketchOpen ? '▾' : '▸'} Sketch
+                </button>
+                {!sketchOpen && drawing ? (
+                  <img
+                    src={drawing}
+                    alt="Sketch thumbnail"
+                    style={{ width: 64, height: 44, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
+                  />
+                ) : null}
+              </div>
+              {sketchOpen ? (
+                <div id="sketch-section" style={{ marginTop: 10 }}>
+                  <DrawingCanvas
+                    ref={drawingRef}
+                    initialDataUrl={drawing || null}
+                    onChange={(data) => setDrawing(data || null)}
+                    height={260}
+                  />
+                  <div className="helper" style={{ marginTop: 6 }}>
+                    Draw with mouse, touch, or stylus. Use pen/eraser, adjust color and width, undo/redo, or clear.
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
         <div className="modal-footer">

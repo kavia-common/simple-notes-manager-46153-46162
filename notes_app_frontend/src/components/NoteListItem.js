@@ -72,6 +72,23 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
             >
               {preview}
             </p>
+            {note.drawing ? (
+              <div style={{ marginTop: 8 }}>
+                <button
+                  className="btn secondary"
+                  onClick={() => onEdit(note)}
+                  aria-label={`Open sketch for ${title}`}
+                  title="Open sketch"
+                  style={{ padding: 4 }}
+                >
+                  <img
+                    src={note.drawing}
+                    alt="Sketch thumbnail"
+                    style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
+                  />
+                </button>
+              </div>
+            ) : null}
             {tags.length > 0 ? (
               <div className="tag-row" style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {tags.map(t => (
