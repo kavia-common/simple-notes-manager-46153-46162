@@ -29,6 +29,14 @@ A modern, responsive notes app with create, edit, delete, search, sort, attachme
   - Audio data is stored as data URLs alongside the note in localStorage and included in API payloads when a backend is configured
   - Notes list shows a microphone badge with the clip count when a note has audio
 
+## Dark Mode
+
+- A toggle in the header switches between Light and Dark themes (Ocean Professional styling).
+- The selection is saved in `localStorage` under `ui.theme` as `'light'` or `'dark'`.
+- On first load, if no preference has been saved, the app auto-detects your system preference via `prefers-color-scheme` and applies it.
+- The theme is applied by setting `data-theme="dark"` on the root `<html>` element; all components inherit colors from CSS variables.
+- Accessibility: color contrast, focus rings, inputs, chips, search, badges, thumbnails, and empty states adjust automatically for readability.
+
 ## Browser & Security Requirements for Voice Notes
 
 - Recording requires a modern browser that supports:

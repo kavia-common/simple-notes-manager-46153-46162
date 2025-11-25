@@ -627,7 +627,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
                         key={img.id}
                         src={img.dataUrl}
                         alt=""
-                        style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
+                        style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-subtle)' }}
                       />
                     ))}
                     {images.length > 3 ? <span className="helper">+{images.length - 3} more</span> : null}
@@ -754,7 +754,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
                   <img
                     src={drawing}
                     alt="Sketch thumbnail"
-                    style={{ width: 64, height: 44, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
+                    style={{ width: 64, height: 44, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-subtle)' }}
                   />
                 ) : null}
               </div>

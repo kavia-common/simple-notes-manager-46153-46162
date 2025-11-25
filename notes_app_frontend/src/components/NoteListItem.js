@@ -90,7 +90,7 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
                     key={img.id}
                     src={img.dataUrl}
                     alt=""
-                    style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
+                    style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-subtle)' }}
                   />
                 ))}
                 {images.length > 3 ? <span className="helper">+{images.length - 3} more</span> : null}
@@ -109,7 +109,7 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
                   <img
                     src={note.drawing}
                     alt="Sketch thumbnail"
-                    style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
+                    style={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-subtle)' }}
                   />
                 </button>
               </div>

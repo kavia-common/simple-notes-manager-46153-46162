@@ -360,8 +360,8 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
           width: '100%',
           height,
           borderRadius: 12,
-          border: '1px solid rgba(0,0,0,0.12)',
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(255,255,255,1))',
+          border: '1px solid var(--border)',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.02), var(--color-surface))',
           overflow: 'hidden',
           position: 'relative',
         }}
