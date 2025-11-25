@@ -115,10 +115,11 @@ export default function NotesPage() {
   };
 
   const onSave = async (payload) => {
-    // Ensure images field exists for backward compatibility
+    // Ensure images and audio fields exist for backward compatibility
     const normalizedPayload = {
       ...payload,
       images: Array.isArray(payload.images) ? payload.images : [],
+      audio: Array.isArray(payload.audio) ? payload.audio : [],
     };
 
     if (editing) {

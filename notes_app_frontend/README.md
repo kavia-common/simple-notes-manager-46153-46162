@@ -1,6 +1,6 @@
 # Simple Notes Manager (React)
 
-A modern, responsive notes app with create, edit, delete, search, sort, attachments, and local persistence. Styled with the Ocean Professional theme.
+A modern, responsive notes app with create, edit, delete, search, sort, attachments, voice notes, and local persistence. Styled with the Ocean Professional theme.
 
 ## Features
 
@@ -20,6 +20,31 @@ A modern, responsive notes app with create, edit, delete, search, sort, attachme
   - Thumbnails grid with remove and simple up/down reordering
   - Thumbnails ribbon shows up to 3 images in the note list
   - Fully client-side, persisted in localStorage or passed to backend when configured
+- Voice notes (record and playback):
+  - Record using your microphone with MediaRecorder
+  - Live recording timer and visual indicator
+  - Upload existing audio files (webm, mp3/mpeg, mp4/m4a, wav)
+  - Add multiple clips per note (up to 10)
+  - Play/pause per clip, rename, and delete
+  - Audio data is stored as data URLs alongside the note in localStorage and included in API payloads when a backend is configured
+  - Notes list shows a microphone badge with the clip count when a note has audio
+
+## Browser & Security Requirements for Voice Notes
+
+- Recording requires a modern browser that supports:
+  - `navigator.mediaDevices.getUserMedia`
+  - `MediaRecorder`
+- Most browsers require HTTPS for microphone access. When running locally via `npm start`, localhost is allowed.
+- You must allow microphone permissions in the browser when prompted.
+- If the browser does not support recording, the UI shows a helpful message and you can still upload audio files.
+
+## Limits and Behavior
+
+- Up to 10 audio clips per note
+- Per file limit ~10MB (recorded or uploaded). Larger files are rejected with a friendly error.
+- Recording automatically stops and warns after 10 minutes.
+- The app is fully client-side; audio clips are stored as data URLs in your browser’s storage. For production deployments, be mindful of storage quotas.
+- Backward compatibility: existing notes (without audio) continue to work; the new `audio` array is defaulted to `[]` on load.
 
 ## Environment Variables
 
@@ -48,8 +73,8 @@ Open http://localhost:3000 in your browser.
 - `src/components/NotesPage.js` – main page, manages state, search, sort, and modal
 - `src/components/NoteList.js` – renders the notes list
 - `src/components/NoteListItem.js` – individual note view with actions
-- `src/components/NoteModal.js` – accessible modal for create/edit with validation and attachments
-- `src/lib/storage.js` – localStorage helpers
+- `src/components/NoteModal.js` – accessible modal for create/edit with validation, attachments, sketch, and voice notes
+- `src/lib/storage.js` – localStorage helpers (normalizes images and audio)
 - `src/lib/api.js` – optional API client with graceful fallback to localStorage
 - `src/index.css` – global theme and components styles (Ocean Professional)
 - `src/App.js` – app shell with header/footer
@@ -65,7 +90,7 @@ Ocean Professional:
 
 - The app fully functions without any backend.
 - If you add a backend later, set `REACT_APP_API_BASE` or `REACT_APP_BACKEND_URL`, and the app will attempt to use it but still fall back if it fails.
-- Backward compatibility: existing notes (without attachments) continue to work. The new `images` array is defaulted to `[]` on load.
+- Backward compatibility: existing notes (without attachments or audio) continue to work. The new `images` and `audio` arrays default to `[]` on load.
 
 ## License
 

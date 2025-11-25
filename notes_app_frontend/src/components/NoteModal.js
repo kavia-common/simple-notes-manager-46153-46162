@@ -10,7 +10,7 @@ import DrawingCanvas from './DrawingCanvas';
  * - isOpen: boolean to control modal visibility
  * - initial: optional note object to prefill when editing; if falsy, modal acts in "create" mode
  * - onCancel: function called when closing without saving
- * - onSave: function called with payload {title, content, tags, drawing?, images[]} when saving
+ * - onSave: function called with payload {title, content, tags, drawing?, images[], audio[]} when saving
  */
 export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [title, setTitle] = useState(initial?.title || '');
@@ -26,6 +26,16 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachError, setAttachError] = useState('');
 
+  // Voice notes state
+  const [audioClips, setAudioClips] = useState(Array.isArray(initial?.audio) ? initial.audio : []);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [audioError, setAudioError] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordStart, setRecordStart] = useState(null);
+  const [recordMillis, setRecordMillis] = useState(0);
+  const [recorderState, setRecorderState] = useState({ mediaRecorder: null, chunks: [] });
+  const [isBlocked, setIsBlocked] = useState(false);
+
   const drawingRef = useRef(null);
   const titleRef = useRef(null);
   const closeRef = useRef(null);
@@ -33,6 +43,11 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const tagInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const dropRef = useRef(null);
+
+  // audio refs
+  const audioInputRef = useRef(null);
+  const recordTimerRef = useRef(null);
+  const streamRef = useRef(null);
 
   // Reset form when initial changes or opening
   useEffect(() => {
@@ -43,9 +58,15 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
     setError('');
     setDrawing(initial?.drawing || null);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
+    setAudioClips(Array.isArray(initial?.audio) ? initial.audio : []);
     // auto-open sections if content exists
     setSketchOpen(!!(initial && initial.drawing));
     setAttachOpen(!!(initial && Array.isArray(initial.images) && initial.images.length));
+    setAudioOpen(!!(initial && Array.isArray(initial.audio) && initial.audio.length));
+    // reset recorder flags
+    setIsRecording(false);
+    setIsBlocked(false);
+    setAudioError('');
   }, [initial, isOpen]);
 
   // Focus handling
@@ -65,6 +86,28 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
       previouslyFocused.current.focus?.();
     }
   }, [isOpen, onCancel]);
+
+  useEffect(() => {
+    // live timer for recording
+    if (!isRecording) {
+      if (recordTimerRef.current) {
+        clearInterval(recordTimerRef.current);
+        recordTimerRef.current = null;
+      }
+      return;
+    }
+    recordTimerRef.current = setInterval(() => {
+      if (recordStart) {
+        setRecordMillis(Date.now() - recordStart);
+      }
+    }, 250);
+    return () => {
+      if (recordTimerRef.current) {
+        clearInterval(recordTimerRef.current);
+        recordTimerRef.current = null;
+      }
+    };
+  }, [isRecording, recordStart]);
 
   if (!isOpen) return null;
 
@@ -249,6 +292,197 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
     });
   };
 
+  // Audio limits and utils
+  const MAX_AUDIO_FILES = 10;
+  const MAX_AUDIO_BYTES = 10 * 1024 * 1024; // 10MB per clip limit (dataURL size may be larger string-wise)
+  const MAX_RECORD_MILLIS = 10 * 60 * 1000; // 10 minutes
+  const AUDIO_ACCEPT = [
+    'audio/webm',
+    'audio/mpeg',
+    'audio/mp4',
+    'audio/wav',
+    'audio/x-m4a',
+    '.m4a',
+  ].join(',');
+
+  function msToClock(ms) {
+    if (!ms || ms < 0) return '00:00';
+    const total = Math.floor(ms / 1000);
+    const mm = String(Math.floor(total / 60)).padStart(2, '0');
+    const ss = String(total % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  }
+
+  function pickSupportedMime() {
+    const candidates = ['audio/webm', 'audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg'];
+    for (const c of candidates) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) {
+        return c;
+      }
+    }
+    return '';
+  }
+
+  async function ensureMicPermission() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setIsBlocked(false);
+      return stream;
+    } catch (err) {
+      setIsBlocked(true);
+      throw err;
+    }
+  }
+
+  function stopStream(stream) {
+    if (!stream) return;
+    stream.getTracks().forEach(t => t.stop());
+  }
+
+  async function startRecording() {
+    setAudioError('');
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      setAudioError('Recording is not supported in this browser. Please use a modern browser over HTTPS.');
+      return;
+    }
+    if (audioClips.length >= MAX_AUDIO_FILES) {
+      setAudioError(`You have reached the limit of ${MAX_AUDIO_FILES} audio clips for this note.`);
+      return;
+    }
+    try {
+      const stream = await ensureMicPermission();
+      streamRef.current = stream;
+      const type = pickSupportedMime();
+      let mediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+      const chunks = [];
+      mediaRecorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) chunks.push(ev.data);
+      };
+      mediaRecorder.onerror = () => {
+        setAudioError('A recording error occurred.');
+      };
+      mediaRecorder.onstop = async () => {
+        try {
+          const blob = new Blob(chunks, { type: chunks[0]?.type || 'audio/webm' });
+          if (blob.size > MAX_AUDIO_BYTES) {
+            setAudioError('Recorded clip is too large. Please record a shorter clip.');
+            stopStream(streamRef.current);
+            streamRef.current = null;
+            return;
+          }
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Read error'));
+            reader.readAsDataURL(blob);
+          });
+          const duration = recordStart ? Math.round((Date.now() - recordStart) / 1000) : undefined;
+          const id = crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+          const clip = {
+            id,
+            name: `Voice ${new Date().toLocaleString()}`,
+            type: blob.type || 'audio/webm',
+            dataUrl: typeof dataUrl === 'string' ? dataUrl : '',
+            duration,
+            createdAt: Date.now(),
+          };
+          setAudioClips(prev => [...prev, clip]);
+        } catch {
+          setAudioError('Failed to process the recorded audio.');
+        } finally {
+          stopStream(streamRef.current);
+          streamRef.current = null;
+        }
+      };
+      setRecorderState({ mediaRecorder, chunks });
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordStart(Date.now());
+      setRecordMillis(0);
+      // Safety stop after max duration
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') stopRecording();
+        if (recordMillis >= MAX_RECORD_MILLIS) {
+          setAudioError('Recording reached the 10-minute limit and was stopped.');
+        }
+      }, MAX_RECORD_MILLIS + 500);
+    } catch (err) {
+      if (isBlocked) {
+        setAudioError('Microphone permission was denied or blocked. Please allow microphone access in your browser settings.');
+      } else {
+        setAudioError('Unable to start recording. Check microphone permissions and try again.');
+      }
+    }
+  }
+
+  function stopRecording() {
+    try {
+      if (recorderState.mediaRecorder && recorderState.mediaRecorder.state === 'recording') {
+        recorderState.mediaRecorder.stop();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsRecording(false);
+      setRecordStart(null);
+    }
+  }
+
+  async function handleAudioFiles(fileList) {
+    setAudioError('');
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    if (audioClips.length + files.length > MAX_AUDIO_FILES) {
+      setAudioError(`Too many audio files. Maximum is ${MAX_AUDIO_FILES}.`);
+      return;
+    }
+    const allowed = ['audio/webm', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/aac'];
+    const toAdd = [];
+    for (const f of files) {
+      if (f.size > MAX_AUDIO_BYTES) {
+        setAudioError(prev => `${prev ? prev + ' • ' : ''}${f.name} is too large (max 10MB).`);
+        continue;
+      }
+      if (!(allowed.includes(f.type) || /\.m4a$/i.test(f.name))) {
+        setAudioError(prev => `${prev ? prev + ' • ' : ''}Unsupported type: ${f.name}`);
+        continue;
+      }
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(f);
+        });
+        toAdd.push({
+          id: crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+          name: f.name,
+          type: f.type || 'audio/*',
+          dataUrl: String(dataUrl),
+          createdAt: Date.now(),
+        });
+      } catch {
+        // skip failed file
+      }
+    }
+    if (toAdd.length) {
+      setAudioClips(prev => [...prev, ...toAdd]);
+    }
+  }
+
+  function removeClip(id) {
+    setAudioClips(prev => prev.filter(a => a.id !== id));
+  }
+
+  function renameClip(id, name) {
+    setAudioClips(prev => prev.map(a => (a.id === id ? { ...a, name } : a)));
+  }
+
   const submit = () => {
     if (!title.trim()) {
       setError('Please provide a title to continue.');
@@ -259,6 +493,11 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
     if (tagInput.trim()) {
       addTagToken(tagInput);
       setTagInput('');
+    }
+    if (isRecording) {
+      // Prevent accidental save while recording
+      setAudioError('Please stop the recording before saving.');
+      return;
     }
     // if a canvas ref exists, retrieve current image; else use drawing state
     let dataUrl = drawing;
@@ -271,6 +510,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
       tags,
       drawing: dataUrl || null,
       images: Array.isArray(images) ? images : [],
+      audio: Array.isArray(audioClips) ? audioClips : [],
     });
   };
 
@@ -532,6 +772,104 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
                 </div>
               ) : null}
             </div>
+
+            {/* Voice Notes Section */}
+            <div className="card" style={{ padding: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => setAudioOpen(v => !v)}
+                  aria-expanded={audioOpen}
+                  aria-controls="audio-section"
+                  title={audioOpen ? 'Hide voice notes' : 'Show voice notes'}
+                >
+                  {audioOpen ? '▾' : '▸'} Voice Notes
+                </button>
+                {!audioOpen && audioClips.length > 0 ? (
+                  <div className="helper" aria-hidden="true">🎙 {audioClips.length}</div>
+                ) : null}
+              </div>
+              {audioOpen ? (
+                <div id="audio-section" style={{ marginTop: 10, display: 'grid', gap: 10 }}>
+                  <div className={`audio-recorder ${isRecording ? 'recording' : ''}`} role="group" aria-label="Voice recorder controls" style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span aria-live="polite" className="helper" title="Recording timer">
+                        {isRecording ? '● Recording' : 'Ready'} · {msToClock(recordMillis)}
+                      </span>
+                      {isBlocked ? (
+                        <span className="helper" role="alert">Microphone permission blocked.</span>
+                      ) : null}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {!isRecording ? (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={startRecording}
+                          aria-label="Start recording"
+                          title="Start recording"
+                        >
+                          ⏺ Record
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn danger"
+                          onClick={stopRecording}
+                          aria-label="Stop recording"
+                          title="Stop recording"
+                        >
+                          ⏹ Stop
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() => audioInputRef.current?.click()}
+                        aria-label="Upload audio files"
+                        title="Upload audio files"
+                      >
+                        ⤒ Upload
+                      </button>
+                      <input
+                        ref={audioInputRef}
+                        type="file"
+                        accept={AUDIO_ACCEPT}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length) {
+                            handleAudioFiles(e.target.files);
+                            e.target.value = '';
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        aria-hidden="true"
+                        tabIndex={-1}
+                      />
+                    </div>
+                  </div>
+                  {audioError ? (
+                    <div className="alert" role="alert" aria-live="assertive">
+                      {audioError}
+                    </div>
+                  ) : null}
+                  {audioClips.length > 0 ? (
+                    <div className="audio-list" aria-live="polite" style={{ display: 'grid', gap: 8 }}>
+                      {audioClips.map((a) => (
+                        <AudioClipRow
+                          key={a.id}
+                          clip={a}
+                          onDelete={() => removeClip(a.id)}
+                          onRename={(name) => renameClip(a.id, name)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="helper">No voice notes yet. Record a clip or upload an audio file (webm, mp3, mp4/m4a, wav).</div>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
         <div className="modal-footer">
@@ -539,6 +877,91 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
           <button className="btn" onClick={submit}>{initial ? 'Save Changes' : 'Create Note'}</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// PUBLIC_INTERFACE
+function AudioClipRow({ clip, onDelete, onRename }) {
+  /** Renders a single audio clip row with play/pause, rename, and delete. */
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [name, setName] = useState(clip.name || 'audio');
+  const [localDuration, setLocalDuration] = useState(clip.duration || 0);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    const onEnded = () => setPlaying(false);
+    const onLoaded = () => {
+      if (!clip.duration && el.duration && isFinite(el.duration)) {
+        setLocalDuration(Math.round(el.duration));
+      }
+    };
+    el.addEventListener('ended', onEnded);
+    el.addEventListener('loadedmetadata', onLoaded);
+    return () => {
+      el.removeEventListener('ended', onEnded);
+      el.removeEventListener('loadedmetadata', onLoaded);
+    };
+  }, [clip.duration]);
+
+  const toggle = async () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (playing) {
+      el.pause();
+      setPlaying(false);
+    } else {
+      try {
+        await el.play();
+        setPlaying(true);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const fmt = (s) => {
+    if (!s || s < 0) return '00:00';
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(Math.floor(s % 60)).padStart(2, '0');
+    return `${mm}:${ss}`;
+  };
+
+  return (
+    <div className="card" style={{ padding: 8, display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10, alignItems: 'center' }}>
+      <button
+        type="button"
+        className="btn secondary"
+        onClick={toggle}
+        aria-label={playing ? 'Pause' : 'Play'}
+        title={playing ? 'Pause' : 'Play'}
+      >
+        {playing ? '⏸ Pause' : '▶️ Play'}
+      </button>
+      <div style={{ display: 'grid', gap: 6 }}>
+        <input
+          className="input"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            onRename(e.target.value);
+          }}
+          aria-label="Rename clip"
+        />
+        <div className="helper">{fmt(localDuration)}</div>
+      </div>
+      <button
+        type="button"
+        className="btn danger"
+        onClick={onDelete}
+        aria-label="Delete"
+        title="Delete"
+      >
+        🗑
+      </button>
+      <audio ref={audioRef} src={clip.dataUrl} preload="metadata" style={{ display: 'none' }} />
     </div>
   );
 }

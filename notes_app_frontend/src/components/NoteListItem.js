@@ -21,6 +21,7 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
   const updatedLabel = same ? '—' : updated.toLocaleString();
   const tags = Array.isArray(note.tags) ? note.tags : [];
   const images = Array.isArray(note.images) ? note.images : [];
+  const audio = Array.isArray(note.audio) ? note.audio : [];
 
   return (
     <div className="note-item card" role="article" aria-labelledby={`note-${note.id}-title`}>
@@ -52,6 +53,13 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
                 <span title={created.toISOString()}>{created.toLocaleString()}</span>
               </span>
             </div>
+            {audio.length > 0 ? (
+              <div className="helper" style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span title={`${audio.length} voice ${audio.length === 1 ? 'note' : 'notes'}`} aria-label={`${audio.length} voice notes`}>
+                  🎙 {audio.length}
+                </span>
+              </div>
+            ) : null}
             <h3
               id={`note-${note.id}-title`}
               style={{

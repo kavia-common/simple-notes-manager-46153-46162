@@ -501,3 +501,22 @@ a:hover {
   gap: 6px;
   justify-content: space-between;
 }
+
+/* Audio recorder styles */
+.audio-recorder {
+  border: 1px dashed rgba(0,0,0,0.12);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(255,255,255,1));
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+}
+.audio-recorder.recording {
+  border-color: rgba(239,68,68,0.45);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(180deg, rgba(239,68,68,0.06), rgba(255,255,255,1));
+}
+.audio-list .card {
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-sm);
+}
