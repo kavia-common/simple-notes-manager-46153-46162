@@ -148,6 +148,20 @@ export default function NotesPage() {
         const created = await createNote(normalizedPayload);
         setNotes(prev => applySort([created, ...prev], sort));
         showToast('Note created.');
+        // Smoothly scroll to bottom of the list after the DOM updates.
+        // This runs only on create, not on every render.
+        setTimeout(() => {
+          const el = listRef.current;
+          if (!el) return;
+          // If virtualized/asynchronous, allow another frame to ensure heights are correct.
+          requestAnimationFrame(() => {
+            try {
+              el.scrollTo({ top: el.scrollHeight, left: 0, behavior: 'smooth' });
+            } catch {
+              el.scrollTop = el.scrollHeight;
+            }
+          });
+        }, 0);
       } catch {
         showToast('Failed to create note.', 'error');
       }
