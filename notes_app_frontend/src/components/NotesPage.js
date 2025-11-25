@@ -33,7 +33,7 @@ function applySort(items, mode) {
 // PUBLIC_INTERFACE
 export default function NotesPage() {
   const [notes, setNotes] = useState([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(''); // preserved in component state
   const [sort, setSort] = useState('updatedDesc');
   const [isModalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -59,11 +59,11 @@ export default function NotesPage() {
     return () => { mounted = false };
   }, []);
 
-  // Debounce query changes (250ms)
+  // Debounce query changes (250–300ms)
   const [debouncedQuery, setDebouncedQuery] = useState('');
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedQuery(query), 250);
+    debounceRef.current = setTimeout(() => setDebouncedQuery(query), 280);
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
@@ -138,26 +138,49 @@ export default function NotesPage() {
     setTimeout(() => setToast(null), 2500);
   }
 
+  const clearQuery = () => setQuery('');
+
+  const hasNoResults = !loading && filtered.length === 0 && (debouncedQuery.trim().length > 0);
+
   return (
     <section aria-label="Notes manager">
       <div className="card" style={{ padding: 14, marginBottom: 14 }}>
         <div className="row" style={{ alignItems: 'center' }}>
-          <div style={{ flex: 2, minWidth: 220 }}>
+          <div style={{ flex: 2, minWidth: 260 }}>
             <label htmlFor="search" style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
               Search
             </label>
-            <input
-              id="search"
-              ref={searchRef}
-              className="input"
-              type="search"
-              placeholder="Search by title or content…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search notes"
-            />
+            <div className="input-with-icon">
+              <span aria-hidden="true" className="input-leading-icon">🔎</span>
+              <input
+                id="search"
+                ref={searchRef}
+                className="input"
+                type="search"
+                placeholder="Search by title or content…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Search notes"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="btn-clear"
+                  onClick={clearQuery}
+                  aria-label="Clear search"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              ) : null}
+            </div>
+            <div className="helper" aria-live="polite" style={{ marginTop: 6 }}>
+              {debouncedQuery
+                ? `Filtering by “${debouncedQuery}”`
+                : 'Tip: Search matches both title and content'}
+            </div>
           </div>
-          <div style={{ minWidth: 180 }}>
+          <div style={{ minWidth: 200 }}>
             <label htmlFor="sort" style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
               Sort by
             </label>
@@ -185,6 +208,18 @@ export default function NotesPage() {
       {loading ? (
         <div className="card" role="status" aria-live="polite" style={{ padding: 18 }}>
           <span className="text-muted">Loading notes…</span>
+        </div>
+      ) : hasNoResults ? (
+        <div
+          className="card empty-state"
+          role="status"
+          aria-live="polite"
+          style={{ padding: 18, textAlign: 'center' }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>No results</div>
+          <div className="text-muted">
+            No notes match “{debouncedQuery}”. Try a different keyword.
+          </div>
         </div>
       ) : (
         <NoteList notes={filtered} onEdit={openEdit} onDelete={onDelete} />

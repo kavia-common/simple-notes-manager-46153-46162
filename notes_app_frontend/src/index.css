@@ -272,3 +272,48 @@ a:hover {
   background: rgba(239,68,68,0.08);
   color: #991b1b;
 }
+
+/* Input with icon and clear button */
+.input-with-icon {
+  position: relative;
+  display: grid;
+}
+
+.input-with-icon .input {
+  padding-left: 38px;
+  padding-right: 34px;
+}
+
+.input-leading-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.btn-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 8px;
+  padding: 4px 7px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-clear:hover {
+  border-color: rgba(37,99,235,0.35);
+}
+
+/* Empty state accent for no-results */
+.empty-state {
+  border-left: 4px solid rgba(37,99,235,0.35);
+  background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(255,255,255,1));
+}
