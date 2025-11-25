@@ -16,7 +16,7 @@ import NoteListItem from './NoteListItem';
  * - The forwarded ref is attached to the scrollable list container div to allow external scroll controls.
  */
 // PUBLIC_INTERFACE
-const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete }, scrollRef) {
+const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete, onTogglePin }, scrollRef) {
   if (!notes || notes.length === 0) {
     return (
       <div
@@ -58,7 +58,7 @@ const NoteList = forwardRef(function NoteList({ notes, onEdit, onDelete }, scrol
     >
       {notes.map((n) => (
         <div role="listitem" key={n.id} style={{ minWidth: 0 }}>
-          <NoteListItem note={n} onEdit={onEdit} onDelete={onDelete} />
+          <NoteListItem note={n} onEdit={onEdit} onDelete={onDelete} onTogglePin={onTogglePin} />
         </div>
       ))}
     </div>

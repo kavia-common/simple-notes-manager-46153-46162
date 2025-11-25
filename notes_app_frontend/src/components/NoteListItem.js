@@ -10,7 +10,7 @@ import React from 'react';
  * - onDelete: function(note) -> delete flow with confirmation
  */
 // PUBLIC_INTERFACE
-export default function NoteListItem({ note, onEdit, onDelete }) {
+export default function NoteListItem({ note, onEdit, onDelete, onTogglePin }) {
   const created = new Date(note.createdAt);
   const updated = new Date(note.updatedAt);
   const same = note.createdAt === note.updatedAt;
@@ -23,8 +23,18 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
   const images = Array.isArray(note.images) ? note.images : [];
   const audio = Array.isArray(note.audio) ? note.audio : [];
 
+  const isPinned = note.pinned === true;
+
   return (
-    <div className="note-item card" role="article" aria-labelledby={`note-${note.id}-title`}>
+    <div
+      className="note-item card"
+      role="article"
+      aria-labelledby={`note-${note.id}-title`}
+      style={{
+        borderLeft: isPinned ? '4px solid var(--color-accent)' : undefined,
+        background: isPinned ? 'linear-gradient(180deg, rgba(245,158,11,0.08), var(--color-surface))' : undefined
+      }}
+    >
       <div className="note-item-body" style={{ padding: 14 }}>
         <div
           style={{
@@ -60,17 +70,29 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
                 </span>
               </div>
             ) : null}
-            <h3
-              id={`note-${note.id}-title`}
-              style={{
-                margin: '0 0 6px 0',
-                fontSize: 16,
-                lineHeight: 1.35,
-                wordBreak: 'break-word',
-              }}
-            >
-              {title}
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3
+                id={`note-${note.id}-title`}
+                style={{
+                  margin: 0,
+                  fontSize: 16,
+                  lineHeight: 1.35,
+                  wordBreak: 'break-word',
+                }}
+              >
+                {title}
+              </h3>
+              {isPinned ? (
+                <span
+                  className="chip chip-small"
+                  aria-label="Pinned"
+                  title="Pinned"
+                  style={{ borderColor: 'rgba(245,158,11,0.45)', background: 'rgba(245,158,11,0.15)' }}
+                >
+                  📌
+                </span>
+              ) : null}
+            </div>
             <p
               className="text-muted"
               style={{
@@ -139,6 +161,14 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
               title="View"
             >
               👁 View
+            </button>
+            <button
+              className={`btn secondary`}
+              onClick={() => onTogglePin && onTogglePin(note)}
+              aria-label={isPinned ? `Unpin note ${title}` : `Pin note ${title}`}
+              title={isPinned ? 'Unpin' : 'Pin'}
+            >
+              {isPinned ? '📌 Unpin' : '📍 Pin'}
             </button>
             <button
               className="btn secondary"

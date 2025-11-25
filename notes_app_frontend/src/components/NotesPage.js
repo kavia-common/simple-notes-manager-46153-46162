@@ -20,18 +20,25 @@ const SORTS = [
 ];
 
 function applySort(items, mode) {
+  // Sort within pinned and unpinned groups using existing mode, pinned first
   const arr = [...items];
-  switch (mode) {
-    case 'createdDesc':
-      arr.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      break;
-    case 'titleAsc':
-      arr.sort((a, b) => a.title.localeCompare(b.title));
-      break;
-    case 'updatedDesc':
-    default:
-      arr.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }
+  const cmpWithin = (a, b) => {
+    switch (mode) {
+      case 'createdDesc':
+        return b.createdAt.localeCompare(a.createdAt);
+      case 'titleAsc':
+        return a.title.localeCompare(b.title);
+      case 'updatedDesc':
+      default:
+        return b.updatedAt.localeCompare(a.updatedAt);
+    }
+  };
+  arr.sort((a, b) => {
+    const ap = a.pinned ? 1 : 0;
+    const bp = b.pinned ? 1 : 0;
+    if (ap !== bp) return bp - ap; // pinned first
+    return cmpWithin(a, b);
+  });
   return arr;
 }
 
@@ -114,6 +121,26 @@ export default function NotesPage() {
     setModalOpen(true);
   };
 
+  const togglePin = async (note) => {
+    const newVal = !Boolean(note.pinned);
+    // optimistic update
+    setNotes(prev => {
+      const now = new Date().toISOString();
+      const next = prev.map(n => (n.id === note.id ? { ...n, pinned: newVal, updatedAt: now } : n));
+      return applySort(next, sort);
+    });
+    try {
+      await updateNote(note.id, { pinned: newVal });
+    } catch {
+      // revert on failure
+      setNotes(prev => {
+        const now = new Date().toISOString();
+        const next = prev.map(n => (n.id === note.id ? { ...n, pinned: note.pinned === true, updatedAt: now } : n));
+        return applySort(next, sort);
+      });
+    }
+  };
+
   // After a note is created and state is updated, run auto-scroll once DOM is committed
   useEffect(() => {
     if (!shouldScrollAfterCreate) return;
@@ -161,7 +188,7 @@ export default function NotesPage() {
       const optimistic = notes.map(n =>
         n.id === editing.id ? { ...n, ...normalizedPayload, updatedAt: now } : n
       );
-      setNotes(optimistic);
+      setNotes(applySort(optimistic, sort));
       setModalOpen(false);
       try {
         const updated = await updateNote(editing.id, normalizedPayload);
@@ -402,7 +429,7 @@ export default function NotesPage() {
       ) : isEmptyDataset ? (
         <NoteList notes={[]} onEdit={openEdit} onDelete={onDelete} />
       ) : (
-        <NoteList ref={listRef} notes={filtered} onEdit={openEdit} onDelete={onDelete} />
+        <NoteList ref={listRef} notes={filtered} onEdit={openEdit} onDelete={onDelete} onTogglePin={togglePin} />
       )}
 
       <ScrollControls targetRef={listRef} />

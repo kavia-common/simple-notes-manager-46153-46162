@@ -16,6 +16,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [title, setTitle] = useState(initial?.title || '');
   const [content, setContent] = useState(initial?.content || '');
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
+  const [pinned, setPinned] = useState(Boolean(initial?.pinned) === true);
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
   const [sketchOpen, setSketchOpen] = useState(false);
@@ -57,6 +58,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
     setTagInput('');
     setError('');
     setDrawing(initial?.drawing || null);
+    setPinned(Boolean(initial?.pinned) === true);
     setImages(Array.isArray(initial?.images) ? initial.images : []);
     setAudioClips(Array.isArray(initial?.audio) ? initial.audio : []);
     // auto-open sections if content exists
@@ -511,6 +513,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
       drawing: dataUrl || null,
       images: Array.isArray(images) ? images : [],
       audio: Array.isArray(audioClips) ? audioClips : [],
+      pinned: Boolean(pinned),
     });
   };
 
@@ -532,14 +535,29 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
           <h2 id={`${id}-title`} className="modal-title">
             {initial ? 'Edit Note' : 'New Note'}
           </h2>
-          <button
-            className="btn secondary"
-            onClick={onCancel}
-            aria-label="Close modal"
-            ref={closeRef}
-          >
-            ✕ Close
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              className="btn secondary"
+              onClick={() => setPinned(p => !p)}
+              aria-pressed={pinned}
+              aria-label={pinned ? 'Unpin this note' : 'Pin this note'}
+              title={pinned ? 'Unpin' : 'Pin'}
+              style={{
+                borderColor: pinned ? 'rgba(245,158,11,0.6)' : undefined,
+                background: pinned ? 'rgba(245,158,11,0.12)' : undefined
+              }}
+            >
+              {pinned ? '📌 Pinned' : '📍 Pin'}
+            </button>
+            <button
+              className="btn secondary"
+              onClick={onCancel}
+              aria-label="Close modal"
+              ref={closeRef}
+            >
+              ✕ Close
+            </button>
+          </div>
         </div>
         <div className="modal-body">
           {error ? (
