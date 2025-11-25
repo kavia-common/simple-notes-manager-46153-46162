@@ -43,6 +43,9 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
+  // Flag to trigger auto-scroll after successful create; effect will run post-DOM update
+  const [shouldScrollAfterCreate, setShouldScrollAfterCreate] = useState(false);
+
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
   const listRef = useRef(null);
@@ -102,6 +105,26 @@ export default function NotesPage() {
     setModalOpen(true);
   };
 
+  // After a note is created and state is updated, run auto-scroll once DOM is committed
+  useEffect(() => {
+    if (!shouldScrollAfterCreate) return;
+    const el = listRef.current;
+    if (!el) {
+      // If list not yet mounted (e.g., transitioning from empty to first item), try next frame
+      requestAnimationFrame(() => setShouldScrollAfterCreate(true));
+      return;
+    }
+    requestAnimationFrame(() => {
+      try {
+        el.scrollTo({ top: el.scrollHeight, left: 0, behavior: 'smooth' });
+      } catch {
+        el.scrollTop = el.scrollHeight;
+      } finally {
+        setShouldScrollAfterCreate(false);
+      }
+    });
+  }, [shouldScrollAfterCreate, listRef]);
+
   const onDelete = async (note) => {
     const ok = window.confirm(`Delete note "${note.title || 'Untitled'}"?`);
     if (!ok) return;
@@ -148,20 +171,8 @@ export default function NotesPage() {
         const created = await createNote(normalizedPayload);
         setNotes(prev => applySort([created, ...prev], sort));
         showToast('Note created.');
-        // Smoothly scroll to bottom of the list after the DOM updates.
-        // This runs only on create, not on every render.
-        setTimeout(() => {
-          const el = listRef.current;
-          if (!el) return;
-          // If virtualized/asynchronous, allow another frame to ensure heights are correct.
-          requestAnimationFrame(() => {
-            try {
-              el.scrollTo({ top: el.scrollHeight, left: 0, behavior: 'smooth' });
-            } catch {
-              el.scrollTop = el.scrollHeight;
-            }
-          });
-        }, 0);
+        // Trigger auto-scroll after the new item renders
+        setShouldScrollAfterCreate(true);
       } catch {
         showToast('Failed to create note.', 'error');
       }
