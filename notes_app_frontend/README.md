@@ -9,7 +9,12 @@ A modern, responsive notes app with create, edit, delete, search, sort, attachme
 - Delete notes with confirmation
 - Instant search/filter by title or content (debounced)
 - Sorting by Updated (desc), Created (desc), and Title (asc)
-- Local persistence via `localStorage` (key: `notes_app_data_v1`)
+- Local persistence via `localStorage` (notes legacy key: `notes_app_data_v1`)
+- Multiple Notebooks:
+  - Create, select, rename, and delete notebooks
+  - Notes are scoped per selected notebook
+  - First run migration: existing notes are moved into a default notebook "My Notes"
+  - Local storage keys: `notes_app_notebooks_v1` and `notes_app_selected_notebook_v1`
 - Optional backend integration (graceful fallback to localStorage)
 - Responsive layout, keyboard accessible, ARIA labels, focus management
 - Image attachments for notes:

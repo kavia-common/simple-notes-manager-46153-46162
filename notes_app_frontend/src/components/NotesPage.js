@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { listNotes, createNote, updateNote, deleteNote } from '../lib/api';
+import {
+  listNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+  getSelectedNotebookId,
+  setSelectedNotebookId,
+} from '../lib/api';
 import NoteList from './NoteList';
 import NoteModal from './NoteModal';
 import { getAllTags } from '../lib/storage';
 import ScrollControls from './ScrollControls';
+import NotebooksBar from './NotebooksBar';
 
 const SORTS = [
   { id: 'updatedDesc', label: 'Updated (desc)' },
@@ -36,6 +44,7 @@ function applySort(items, mode) {
 // PUBLIC_INTERFACE
 export default function NotesPage() {
   const [notes, setNotes] = useState([]);
+  const [selectedNotebookId, setSelectedNotebookIdState] = useState(getSelectedNotebookId() || '');
   const [query, setQuery] = useState(''); // preserved in component state
   const [sort, setSort] = useState('updatedDesc');
   const [isModalOpen, setModalOpen] = useState(false);
@@ -56,7 +65,7 @@ export default function NotesPage() {
     (async () => {
       setLoading(true);
       try {
-        const data = await listNotes();
+        const data = await listNotes(selectedNotebookId || undefined);
         if (mounted) setNotes(Array.isArray(data) ? data : []);
       } catch (e) {
         showToast('Failed to load notes. Using local data if available.', 'error');
@@ -65,7 +74,7 @@ export default function NotesPage() {
       }
     })();
     return () => { mounted = false };
-  }, []);
+  }, [selectedNotebookId]);
 
   // Debounce query changes (250–300ms)
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -168,7 +177,7 @@ export default function NotesPage() {
     } else {
       setModalOpen(false);
       try {
-        const created = await createNote(normalizedPayload);
+        const created = await createNote(normalizedPayload, selectedNotebookId || undefined);
         setNotes(prev => applySort([created, ...prev], sort));
         showToast('Note created.');
         // Trigger auto-scroll after the new item renders
@@ -200,6 +209,16 @@ export default function NotesPage() {
 
   return (
     <section aria-label="Notes manager">
+      <NotebooksBar
+        onChange={(id) => {
+          setSelectedNotebookIdState(id || '');
+          try {
+            setSelectedNotebookId(id || '');
+          } catch {
+            // ignore
+          }
+        }}
+      />
       <div className="card" style={{ padding: 14, marginBottom: 14 }}>
         <div className="row" style={{ alignItems: 'center' }}>
           <div style={{ flex: 2, minWidth: 260 }}>

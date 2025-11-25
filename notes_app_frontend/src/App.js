@@ -52,7 +52,7 @@ function App() {
         <div className="container header-inner">
           <div className="brand">
             <span className="brand-badge" aria-hidden="true">✦</span>
-            <h1 className="brand-title">Simple Notes Manager</h1>
+            <h1 className="brand-title">Simple Notes Manager — Notebooks</h1>
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button
