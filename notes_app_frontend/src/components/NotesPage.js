@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { listNotes, createNote, updateNote, deleteNote } from '../lib/api';
 import NoteList from './NoteList';
 import NoteModal from './NoteModal';
+import { getAllTags } from '../lib/storage';
 
 const SORTS = [
   { id: 'updatedDesc', label: 'Updated (desc)' },
@@ -40,6 +41,7 @@ export default function NotesPage() {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -68,17 +70,25 @@ export default function NotesPage() {
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
-  // Search integrates with list view
+  const availableTags = useMemo(() => getAllTags(notes), [notes]);
+
+  // Search + Tag filter integrates with list view (AND logic)
   const filtered = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
-    const source = q
+    const byText = q
       ? notes.filter(n =>
           (n.title || '').toLowerCase().includes(q) ||
           (n.content || '').toLowerCase().includes(q)
         )
       : notes;
-    return applySort(source, sort);
-  }, [notes, debouncedQuery, sort]);
+    const byTags = selectedTags.length
+      ? byText.filter(n => {
+          const ntags = Array.isArray(n.tags) ? n.tags : [];
+          return selectedTags.every(t => ntags.includes(t));
+        })
+      : byText;
+    return applySort(byTags, sort);
+  }, [notes, debouncedQuery, selectedTags, sort]);
 
   const openNew = () => {
     setEditing(null);
@@ -115,7 +125,7 @@ export default function NotesPage() {
       try {
         const updated = await updateNote(editing.id, payload);
         setNotes(prev =>
-          prev.map(n => (n.id === editing.id ? updated || n : n))
+          prev.map(n => (n.id === editing.id ? (updated || n) : n))
         );
         showToast('Note updated.');
       } catch {
@@ -142,8 +152,17 @@ export default function NotesPage() {
 
   const clearQuery = () => setQuery('');
 
-  const hasNoResults = !loading && filtered.length === 0 && (debouncedQuery.trim().length > 0);
+  const hasNoResults =
+    !loading && filtered.length === 0 && (debouncedQuery.trim().length > 0 || selectedTags.length > 0);
   const isEmptyDataset = !loading && notes.length === 0;
+
+  const toggleTagFilter = (tag) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const clearTagFilters = () => setSelectedTags([]);
 
   return (
     <section aria-label="Notes manager">
@@ -188,6 +207,41 @@ export default function NotesPage() {
                 : 'Tip: Search matches both title and content'}
             </div>
           </div>
+          <div style={{ minWidth: 240 }}>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
+              Tag Filter
+            </label>
+            <div className="tag-filter-bar">
+              {availableTags.length === 0 ? (
+                <div className="helper">No tags yet. Add tags while creating or editing notes.</div>
+              ) : (
+                <div className="tag-filter-chips" role="listbox" aria-label="Filter by tags">
+                  {availableTags.map(t => {
+                    const active = selectedTags.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        className={`chip chip-clickable ${active ? 'chip-active' : ''}`}
+                        aria-pressed={active}
+                        onClick={() => toggleTagFilter(t)}
+                        title={active ? `Remove filter: ${t}` : `Filter by: ${t}`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedTags.length > 0 ? (
+                <div className="tag-filter-actions">
+                  <button type="button" className="btn secondary" onClick={clearTagFilters} aria-label="Clear tag filters">
+                    Clear Tags
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
           <div style={{ minWidth: 200 }}>
             <label htmlFor="sort" style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
               Sort by
@@ -226,7 +280,9 @@ export default function NotesPage() {
         >
           <div style={{ fontWeight: 700, marginBottom: 6 }}>No results</div>
           <div className="text-muted">
-            No notes match “{debouncedQuery}”. Try a different keyword.
+            {selectedTags.length > 0
+              ? `No notes match the selected tag${selectedTags.length > 1 ? 's' : ''} (${selectedTags.join(', ')}). Try clearing some tags or adjusting your search.`
+              : `No notes match “${debouncedQuery}”. Try a different keyword.`}
           </div>
         </div>
       ) : isEmptyDataset ? (

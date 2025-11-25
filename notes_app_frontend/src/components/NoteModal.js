@@ -9,20 +9,25 @@ import React, { useEffect, useRef, useState } from 'react';
  * - isOpen: boolean to control modal visibility
  * - initial: optional note object to prefill when editing; if falsy, modal acts in "create" mode
  * - onCancel: function called when closing without saving
- * - onSave: function called with payload {title, content} when saving
+ * - onSave: function called with payload {title, content, tags} when saving
  */
 export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [title, setTitle] = useState(initial?.title || '');
   const [content, setContent] = useState(initial?.content || '');
+  const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
+  const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
   const titleRef = useRef(null);
   const closeRef = useRef(null);
   const previouslyFocused = useRef(null);
+  const tagInputRef = useRef(null);
 
   // Reset form when initial changes or opening
   useEffect(() => {
     setTitle(initial?.title || '');
     setContent(initial?.content || '');
+    setTags(Array.isArray(initial?.tags) ? initial.tags : []);
+    setTagInput('');
     setError('');
   }, [initial, isOpen]);
 
@@ -46,15 +51,48 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
 
   if (!isOpen) return null;
 
+  const addTagToken = (raw) => {
+    if (typeof raw !== 'string') return;
+    const cleaned = raw.trim();
+    if (!cleaned) return;
+    // Preserve case; avoid duplicates (case-sensitive compare to preserve natural style)
+    if (tags.includes(cleaned)) return;
+    setTags(prev => [...prev, cleaned]);
+  };
+
+  const onTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const parts = tagInput.split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length > 0) {
+        parts.forEach(addTagToken);
+        setTagInput('');
+      }
+    } else if (e.key === 'Backspace' && !tagInput) {
+      // quick remove last tag
+      setTags(prev => prev.slice(0, -1));
+    }
+  };
+
+  const removeTag = (value) => {
+    setTags(prev => prev.filter(t => t !== value));
+  };
+
   const submit = () => {
     if (!title.trim()) {
       setError('Please provide a title to continue.');
       titleRef.current?.focus();
       return;
     }
+    // If user typed something but didn't press enter/comma, add it
+    if (tagInput.trim()) {
+      addTagToken(tagInput);
+      setTagInput('');
+    }
     onSave({
       title: title.trim(),
       content,
+      tags,
     });
   };
 
@@ -113,6 +151,42 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Write your note here..."
               />
+            </label>
+            <label>
+              <div style={{ marginBottom: 6, fontWeight: 600 }}>
+                Tags <span className="text-muted">(optional)</span>
+              </div>
+              <div className="tag-input-wrap">
+                <div className="tag-chips" aria-live="polite">
+                  {tags.map(t => (
+                    <span className="chip" key={t}>
+                      <span className="chip-label">{t}</span>
+                      <button
+                        type="button"
+                        className="chip-remove"
+                        aria-label={`Remove tag ${t}`}
+                        title="Remove tag"
+                        onClick={() => removeTag(t)}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    ref={tagInputRef}
+                    className="input tag-input"
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={onTagKeyDown}
+                    placeholder={tags.length ? 'Add tag…' : 'e.g. work, personal'}
+                    aria-label="Add tags (comma or Enter to add)"
+                  />
+                </div>
+                <div className="helper" style={{ marginTop: 6 }}>
+                  Press Enter or comma to add. Empty tokens are ignored. Duplicate tags are not added.
+                </div>
+              </div>
             </label>
             <div className="helper">Tip: Use markdown syntax to structure your content.</div>
           </div>

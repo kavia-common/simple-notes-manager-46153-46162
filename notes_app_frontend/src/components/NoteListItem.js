@@ -5,7 +5,7 @@ import React from 'react';
  * Accessible buttons with ARIA labels.
  *
  * Props:
- * - note: { id, title, content, createdAt, updatedAt }
+ * - note: { id, title, content, createdAt, updatedAt, tags? }
  * - onEdit: function(note) -> open edit modal with the given note
  * - onDelete: function(note) -> delete flow with confirmation
  */
@@ -19,6 +19,7 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
   const preview = truncate(note.content || '', 140);
 
   const updatedLabel = same ? '—' : updated.toLocaleString();
+  const tags = Array.isArray(note.tags) ? note.tags : [];
 
   return (
     <div className="note-item card" role="article" aria-labelledby={`note-${note.id}-title`}>
@@ -71,6 +72,15 @@ export default function NoteListItem({ note, onEdit, onDelete }) {
             >
               {preview}
             </p>
+            {tags.length > 0 ? (
+              <div className="tag-row" style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {tags.map(t => (
+                  <span className="chip chip-small" key={t} aria-label={`Tag ${t}`}>
+                    {t}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div
             style={{
