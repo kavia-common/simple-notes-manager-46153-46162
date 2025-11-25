@@ -3,7 +3,13 @@ import React from 'react';
 /**
  * Renders a single note item with edit and delete actions.
  * Accessible buttons with ARIA labels.
+ *
+ * Props:
+ * - note: { id, title, content, createdAt, updatedAt }
+ * - onEdit: function(note) -> open edit modal with the given note
+ * - onDelete: function(note) -> delete flow with confirmation
  */
+// PUBLIC_INTERFACE
 export default function NoteListItem({ note, onEdit, onDelete }) {
   const created = new Date(note.createdAt);
   const updated = new Date(note.updatedAt);

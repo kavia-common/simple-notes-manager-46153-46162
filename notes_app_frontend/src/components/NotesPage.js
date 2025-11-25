@@ -25,6 +25,12 @@ function applySort(items, mode) {
   return arr;
 }
 
+/**
+ * NotesPage
+ * Main page managing notes state, search, sort, and the create/edit modal.
+ * Includes optimistic updates and graceful fallback to localStorage.
+ */
+// PUBLIC_INTERFACE
 export default function NotesPage() {
   const [notes, setNotes] = useState([]);
   const [query, setQuery] = useState('');

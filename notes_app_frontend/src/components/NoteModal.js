@@ -4,6 +4,12 @@ import React, { useEffect, useRef, useState } from 'react';
  * Accessible modal for creating and editing notes.
  * - Focuses the title field on open and returns focus to trigger on close
  * - Esc closes, Enter on buttons
+ *
+ * Props:
+ * - isOpen: boolean to control modal visibility
+ * - initial: optional note object to prefill when editing; if falsy, modal acts in "create" mode
+ * - onCancel: function called when closing without saving
+ * - onSave: function called with payload {title, content} when saving
  */
 export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
   const [title, setTitle] = useState(initial?.title || '');
@@ -42,7 +48,7 @@ export default function NoteModal({ isOpen, initial, onCancel, onSave }) {
 
   const submit = () => {
     if (!title.trim()) {
-      setError('Title is required.');
+      setError('Please provide a title to continue.');
       titleRef.current?.focus();
       return;
     }

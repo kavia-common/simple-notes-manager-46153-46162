@@ -5,7 +5,7 @@ A modern, responsive notes app with create, edit, delete, search, sort, and loca
 ## Features
 
 - Notes list view with title, truncated content, and created/updated timestamps
-- Create and Edit notes via an accessible modal
+- Create and Edit notes via an accessible modal (prefilled on Edit with optimistic updates)
 - Delete notes with confirmation
 - Instant search/filter by title or content (debounced)
 - Sorting by Updated (desc), Created (desc), and Title (asc)
